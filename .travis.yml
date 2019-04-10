@@ -1,0 +1,35 @@
+sudo: required
+services:
+  - docker
+
+env:
+  global:
+    # to be used in deploy.sh
+    - SHA=$(git rev-parse HEAD)
+    # This env var will disabel user based prompts in gcloud commands
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
+before_install:
+  # decrypt the encrypted service-account.json file that we manually encrypted before-hand
+  - openssl aes-256-cbc -K $encrypted_0c35eebf403c_key -iv $encrypted_0c35eebf403c_iv -in service-account.json.enc -out service-account.json -d
+  # setting up Google CLOUDSDK
+  - curl https://sdk.cloud.google.com | bash > /dev/null;
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  # configuring kubectl in travis with gcloud access
+  - gcloud components update kubectl
+  - gcloud auth activate-service-account --key-file service-account.json
+  - gcloud config set project canvas-victor-237109
+  - gcloud config set compute/zone us-central1-a
+  - gcloud container clusters get-credentials multi-cluster
+  # login to docker hub for pushing images that will be build in deployment stage
+  - echo "$DOCKER_PASSWORD" | docker login -i "$DOCKER_USERNAME" --password-stdin
+  - docker build -t test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run test npm run test -- --coverage
+
+deploy:
+  provider: script
+  script: bash ./deploy.sh
+  on:
+    branch: master
