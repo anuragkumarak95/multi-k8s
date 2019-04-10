@@ -22,7 +22,7 @@ before_install:
   - gcloud config set compute/zone us-central1-a
   - gcloud container clusters get-credentials multi-cluster
   # login to docker hub for pushing images that will be build in deployment stage
-  - echo "$DOCKER_PASSWORD" | docker login -i "$DOCKER_USERNAME" --password-stdin
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - docker build -t test -f ./client/Dockerfile.dev ./client
 
 script:
